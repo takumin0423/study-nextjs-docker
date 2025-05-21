@@ -1,0 +1,37 @@
+# Dockerfile for Development Environment
+
+# Node.js 20-slim をベースイメージとして使用
+FROM node:20-slim AS base
+# 環境変数 PNPM_HOME を設定 (pnpm のインストール先)
+ENV PNPM_HOME="/pnpm"
+# 環境変数 PATH に PNPM_HOME を追加
+ENV PATH="${PNPM_HOME}:${PATH}"
+# corepack を有効化 (Node.js に同梱されている pnpm を使用可能にする)
+RUN corepack enable
+
+# 作業ディレクトリを /app に設定
+WORKDIR /app
+
+# pnpm-lock.yaml をコピー (依存関係のバージョンを固定するため)
+COPY pnpm-lock.yaml ./
+# pnpm のキャッシュを利用して依存関係をフェッチ (開発用なので --prod は付けない)
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm fetch
+
+# package.json をコピー (依存関係の定義ファイル)
+COPY package.json ./
+
+# pnpm のキャッシュを利用して依存関係をインストール (lockfile に基づく)
+# 開発用なので devDependencies も含めてインストールされる
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+
+# プロジェクト全体のファイルをコピー (ソースコード)
+COPY . .
+
+# Node.js 環境を 'development' に設定
+ENV NODE_ENV development
+
+# アプリケーションがリッスンするポートを指定 (Next.js 開発サーバーのデフォルト)
+EXPOSE 3000
+
+# コンテナ起動時に実行するコマンド (Next.js 開発サーバーを起動)
+CMD ["pnpm", "run", "dev"]

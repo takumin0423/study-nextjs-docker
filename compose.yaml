@@ -1,0 +1,51 @@
+networks:
+  app_net: # アプリケーションコンテナとDBコンテナが通信するためのカスタムブリッジネットワーク
+    driver: bridge
+
+services:
+  db: # PostgreSQL データベースサービス
+    image: postgres:15-alpine # 使用する PostgreSQL の Docker イメージ
+    container_name: local-pg # コンテナ名
+    restart: unless-stopped # コンテナが予期せず停止した場合、手動で停止しない限り再起動する
+    environment: # 環境変数
+      POSTGRES_DB: ${DB_NAME} # データベース名 (.env ファイルから読み込む)
+      POSTGRES_USER: ${DB_USER} # データベースユーザー名 (.env ファイルから読み込む)
+      POSTGRES_PASSWORD: ${DB_PASS} # データベースパスワード (.env ファイルから読み込む)
+      PGDATA: /var/lib/postgresql/data/pgdata # PostgreSQL のデータディレクトリ
+    ports:
+      - "5432:5432" # ホストの5432ポートをコンテナの5432ポートにマッピング
+    volumes:
+      - pg_data:/var/lib/postgresql/data # 名前付きボリューム pg_data をコンテナのデータディレクトリにマウント (データ永続化)
+    healthcheck: # コンテナのヘルスチェック設定
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"] # DB が準備完了か確認するコマンド
+      interval: 3s # チェック間隔
+      timeout: 3s # タイムアウト時間
+      retries: 10 # リトライ回数
+    networks:
+      - app_net # app_net ネットワークに接続
+
+  web: # Next.js アプリケーションサービス (本番用)
+    build:
+      context: . # ビルドコンテキスト (プロジェクトルート)
+      dockerfile: Dockerfile # 使用する Dockerfile (本番用)
+    container_name: next-app-prod # コンテナ名
+    restart: unless-stopped # コンテナが予期せず停止した場合、手動で停止しない限り再起動する
+    depends_on: # 依存関係
+      db: # db サービスに依存
+        condition: service_healthy # db サービスが healthy 状態になってから起動する
+    environment: # 環境変数
+      # DATABASE_URL: "postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}" # ローカルDBコンテナへの接続文字列 (.env ファイルから読み込む)
+      # AWS Fargate等ではタスク定義で実際のRDS接続情報を設定する
+      NODE_ENV: production # Node.js 環境を 'production' に設定
+      PORT: "3000" # アプリケーションがリッスンするポート (Next.js standalone モードで必要)
+    ports:
+      - "3000:3000" # ホストの3000ポートをコンテナの3000ポートにマッピング
+    # 本番ビルドではソースコードのボリュームマウントは不要
+    # pnpm-store のマウントも、ビルド済みイメージを実行するだけなので不要
+    networks:
+      - app_net # app_net ネットワークに接続
+
+volumes:
+  pg_data: # PostgreSQL のデータを永続化するための名前付きボリューム
+    driver: local
+  # pnpm-store: # pnpm のキャッシュ用ボリューム (開発時に compose.dev.yaml で定義・使用)

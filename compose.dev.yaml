@@ -1,0 +1,29 @@
+services:
+  web: # Next.js アプリケーションサービス (開発用)
+    build:
+      context: . # ビルドコンテキスト (プロジェクトルート)
+      dockerfile: Dockerfile.dev # 使用する Dockerfile (開発用)
+    container_name: next-app-dev # 開発用コンテナ名
+    ports:
+      - "3000:3000" # ホストの3000ポートをコンテナの3000ポートにマッピング
+    volumes:
+      # ホストのカレントディレクトリをコンテナの /app にマウント (ソースコードのホットリロードのため)
+      - .:/app
+      # ホストの node_modules がコンテナ内の node_modules を上書きしないようにするための匿名ボリューム
+      # (コンテナ内で pnpm install した node_modules を使用する)
+      - /app/node_modules
+      # pnpm のキャッシュを永続化するための名前付きボリューム (ビルド高速化のため)
+      - pnpm-store:/pnpm/store
+    depends_on: # 依存関係
+      db: # compose.yaml で定義された db サービスに依存
+        condition: service_healthy # db サービスが healthy 状態になってから起動する
+    environment: # 環境変数
+      NODE_ENV: development # Node.js 環境を 'development' に設定
+      # ローカルDBコンテナへの接続情報 ( .env ファイルから読み込まれる想定 )
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}"
+    # 開発用サーバーの起動コマンドは Dockerfile.dev の CMD で指定されているため、ここでは通常不要
+    # command: pnpm run dev
+
+volumes:
+  pnpm-store: # pnpm のキャッシュを永続化するための名前付きボリューム
+    driver: local

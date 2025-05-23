@@ -17,11 +17,15 @@ ENV PATH="${PNPM_HOME}:${PATH}"
 # corepack を有効化 (Node.js に同梱されている pnpm を使用可能にする)
 RUN corepack enable
 
-# 作業ディレクトリを /app に設定
+# 作業ディレクトリを /app に設定し、適切な権限を設定
 WORKDIR /app
+RUN chown nextjs:nodejs /app
+
+# 非rootユーザーに切り替え（以降の処理を非rootで実行）
+USER nextjs
 
 # package.json と pnpm-lock.yaml を先にコピー（レイヤーキャッシュ最適化）
-COPY package.json pnpm-lock.yaml ./
+COPY --chown=nextjs:nodejs package.json pnpm-lock.yaml ./
 
 # pnpm のキャッシュを利用して依存関係をフェッチ (開発用なので --prod は付けない)
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm fetch
@@ -30,14 +34,19 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm fetch
 # 開発用なので devDependencies も含めてインストールされる
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
-# プロジェクト全体のファイルをコピー (ソースコード)
-COPY . .
+# 必要なディレクトリを作成
+RUN mkdir -p .next/cache && mkdir -p public
 
-# ファイルの所有者を nextjs ユーザーに変更
-RUN chown -R nextjs:nodejs /app
+# 設定ファイルをコピー（所有者を指定してコピー）
+COPY --chown=nextjs:nodejs next.config.ts tsconfig.json postcss.config.mjs eslint.config.mjs ./
+COPY --chown=nextjs:nodejs drizzle.config.ts drizzle.config.local.ts ./
 
-# 非rootユーザーに切り替え（セキュリティ向上）
-USER nextjs
+# ソースコードをコピー（所有者を指定してコピー）
+COPY --chown=nextjs:nodejs src/ ./src/
+COPY --chown=nextjs:nodejs public/ ./public/
+
+# Drizzleマイグレーションファイルをコピー
+COPY --chown=nextjs:nodejs drizzle/ ./drizzle/
 
 # Node.js 環境を 'development' に設定
 ENV NODE_ENV=development

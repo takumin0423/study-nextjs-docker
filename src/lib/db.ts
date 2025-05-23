@@ -1,4 +1,6 @@
 import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { todos } from "./schema";
 
 // データベース接続用のPoolインスタンスを作成
 let pool: Pool | null = null;
@@ -21,6 +23,9 @@ export function getDbPool(): Pool {
 
   return pool;
 }
+
+// Drizzle用のデータベース接続インスタンス
+export const db = drizzle(getDbPool());
 
 // テスト用のテーブルが存在するかチェックし、なければ作成
 export async function ensureTestTable(): Promise<void> {

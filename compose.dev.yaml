@@ -19,10 +19,29 @@ services:
         condition: service_healthy # db サービスが healthy 状態になってから起動する
     environment: # 環境変数
       NODE_ENV: development # Node.js 環境を 'development' に設定
+      PORT: "3000" # アプリケーションがリッスンするポート
+      HOSTNAME: "0.0.0.0" # バインドするホスト名
+      NEXT_TELEMETRY_DISABLED: "1" # テレメトリを無効化
       # ローカルDBコンテナへの接続情報 ( .env ファイルから読み込まれる想定 )
       DATABASE_URL: "postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}"
-    # 開発用サーバーの起動コマンドは Dockerfile.dev の CMD で指定されているため、ここでは通常不要
-    # command: pnpm run dev
+    # 開発環境ではセキュリティ設定を緩和（読み取り専用ファイルシステムを無効化）
+    read_only: false # 開発環境では書き込みが必要
+    # リソース制限（開発環境用）
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+    # ヘルスチェック（開発環境用）
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # 開発環境では起動に時間がかかる場合があるため長めに設定
 
 volumes:
   pnpm-store: # pnpm のキャッシュを永続化するための名前付きボリューム

@@ -3,25 +3,30 @@
 # 1. Node 関連 – ホスト側の node_modules や pnpm ストアはコンテナにコピーしない
 node_modules
 .pnpm-store      # ローカルの pnpm キャッシュ (コンテナ内では Docker のキャッシュを使用)
-
-# 2. Next.js ビルド生成物 – これらはコンテナ内でビルドされるか、不要なもの
-.next
-.next/cache      # 開発ビルドのキャッシュ (ホスト側のキャッシュは含めない)
-out              # next export 時にできる静的出力 (今回は使用しない想定)
-
-# 3. ログ・テスト・カバレッジ – 通常、イメージに含める必要はない
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
+.yarn
+
+# 2. Next.js ビルド生成物 – これらはコンテナ内でビルドされるか、不要なもの
+.next
+out              # next export 時にできる静的出力 (今回は使用しない想定)
+build
+dist
+
+# 3. ログ・テスト・カバレッジ – 通常、イメージに含める必要はない
+*.log
 coverage
 *.lcov
-*.log
+.nyc_output
 
 # 4. 機密ファイル・環境変数 – これらはイメージに含めるべきではない
 .env             # 環境変数は実行時にコンテナに渡す
 .env.*
 *.pem
 *.key
+*.p12
+*.pfx
 
 # 5. VCS／CI／IDE 固有ファイル – プロジェクト管理や開発ツール固有のファイル
 .git
@@ -31,16 +36,37 @@ coverage
 .idea
 .DS_Store        # macOS 固有ファイル
 *.swp            # Vim スワップファイル
+*.swo
+*~
 
 # 6. Docker メタファイル – Dockerfile 自体などをコンテキストに含める必要はない
-# Dockerfile       # COPY . . の際に Dockerfile 自体をコピーしないようにする
-# docker-compose.yml
-# compose.yaml
-# .dockerignore    # このファイル自体
-# (上記メタファイルは、COPY . . の対象から除外した方が厳密ですが、実害は少ない場合もあります)
-# (今回はコメントアウトのままにしておき、必要に応じて有効化を検討してください)
+Dockerfile*
+docker-compose*.yml
+compose*.yaml
+.dockerignore
 
 # 7. ドキュメントや不要ディレクトリ（任意）
 docs
-examples
+documentation
+README*.md
+CHANGELOG*.md
+LICENSE*
 **/__tests__/    # テストコード (本番イメージには不要な場合)
+**/*.test.*
+**/*.spec.*
+jest.config.*
+cypress
+.storybook
+
+# 8. TypeScript関連（ビルド時に不要）
+*.tsbuildinfo
+
+# 9. 開発ツール設定（一部は本番ビルドに必要なので残す）
+.husky
+.lintstagedrc*
+
+# 10. 一時ファイル
+tmp
+temp
+*.tmp
+*.temp

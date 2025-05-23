@@ -1,6 +1,8 @@
 networks:
   app_net: # アプリケーションコンテナとDBコンテナが通信するためのカスタムブリッジネットワーク
     driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: "nextjs-br0"
 
 services:
   db: # PostgreSQL データベースサービス
@@ -12,17 +14,35 @@ services:
       POSTGRES_USER: ${DB_USER} # データベースユーザー名 (.env ファイルから読み込む)
       POSTGRES_PASSWORD: ${DB_PASS} # データベースパスワード (.env ファイルから読み込む)
       PGDATA: /var/lib/postgresql/data/pgdata # PostgreSQL のデータディレクトリ
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256" # より安全な認証方法
     ports:
       - "5432:5432" # ホストの5432ポートをコンテナの5432ポートにマッピング
     volumes:
       - pg_data:/var/lib/postgresql/data # 名前付きボリューム pg_data をコンテナのデータディレクトリにマウント (データ永続化)
     healthcheck: # コンテナのヘルスチェック設定
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"] # DB が準備完了か確認するコマンド
-      interval: 3s # チェック間隔
-      timeout: 3s # タイムアウト時間
-      retries: 10 # リトライ回数
+      interval: 10s # チェック間隔
+      timeout: 5s # タイムアウト時間
+      retries: 5 # リトライ回数
+      start_period: 30s # 初回ヘルスチェックまでの待機時間
     networks:
       - app_net # app_net ネットワークに接続
+    # セキュリティ設定
+    security_opt:
+      - no-new-privileges:true
+    read_only: false # PostgreSQLは書き込みが必要
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+    # リソース制限
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
 
   web: # Next.js アプリケーションサービス (本番用)
     build:
@@ -34,16 +54,45 @@ services:
       db: # db サービスに依存
         condition: service_healthy # db サービスが healthy 状態になってから起動する
     environment: # 環境変数
-      # DATABASE_URL: "postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}" # ローカルDBコンテナへの接続文字列 (.env ファイルから読み込む)
-      # AWS Fargate等ではタスク定義で実際のRDS接続情報を設定する
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}" # ローカルDBコンテナへの接続文字列
       NODE_ENV: production # Node.js 環境を 'production' に設定
-      PORT: "3000" # アプリケーションがリッスンするポート (Next.js standalone モードで必要)
+      PORT: "3000" # アプリケーションがリッスンするポート
+      HOSTNAME: "0.0.0.0" # バインドするホスト名
+      NEXT_TELEMETRY_DISABLED: "1" # テレメトリを無効化
     ports:
       - "3000:3000" # ホストの3000ポートをコンテナの3000ポートにマッピング
-    # 本番ビルドではソースコードのボリュームマウントは不要
-    # pnpm-store のマウントも、ビルド済みイメージを実行するだけなので不要
     networks:
       - app_net # app_net ネットワークに接続
+    # セキュリティ設定
+    security_opt:
+      - no-new-privileges:true
+    read_only: true # ファイルシステムを読み取り専用に
+    tmpfs:
+      - /tmp
+      - /var/cache/nextjs
+      - /app/.next/cache # Next.jsキャッシュ用
+    # リソース制限
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+    # ヘルスチェック（Dockerfileで定義されているが、compose側でも設定可能）
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # ログ設定
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   pg_data: # PostgreSQL のデータを永続化するための名前付きボリューム

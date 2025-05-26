@@ -1,20 +1,27 @@
 "use client";
 
-import { useState } from "react";
 import type { Todo } from "@/types/todo";
+import { toast } from "sonner";
 import TodoForm from "./TodoForm";
 import TodoItem from "./TodoItem";
-import Message from "./Message";
 
 interface TodoContainerProps {
   todos: Todo[];
 }
 
 export default function TodoContainer({ todos }: TodoContainerProps) {
-  const [message, setMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+  // メッセージを表示する関数
+  const handleSetMessage = (
+    message: { type: "success" | "error"; text: string } | null
+  ) => {
+    if (message) {
+      if (message.type === "success") {
+        toast.success(message.text);
+      } else {
+        toast.error(message.text);
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -23,11 +30,8 @@ export default function TodoContainer({ todos }: TodoContainerProps) {
           ToDoリスト
         </h1>
 
-        {/* メッセージ表示 */}
-        <Message message={message} />
-
         {/* 新しいToDo作成フォーム */}
-        <TodoForm onMessage={setMessage} />
+        <TodoForm onMessage={handleSetMessage} />
 
         {/* ToDoリスト */}
         <div className="space-y-4">
@@ -39,7 +43,11 @@ export default function TodoContainer({ todos }: TodoContainerProps) {
             </div>
           ) : (
             todos.map((todo) => (
-              <TodoItem key={todo.id} todo={todo} onMessage={setMessage} />
+              <TodoItem
+                key={todo.id}
+                todo={todo}
+                onMessage={handleSetMessage}
+              />
             ))
           )}
         </div>

@@ -5,17 +5,33 @@ import { createTodo } from "@/lib/todo-actions";
 import { useRef } from "react";
 
 interface TodoFormProps {
-  onMessage: (message: { type: "success" | "error"; text: string }) => void;
+  onMessage: (
+    message: { type: "success" | "error"; text: string } | null
+  ) => void;
 }
 
-// Server Actionをラップする関数
-async function createTodoAction(prevState: any, formData: FormData) {
-  return await createTodo(formData);
-}
-
-export default function TodoForm() {
-  const [, formAction, isPending] = useActionState(createTodoAction, null);
+export default function TodoForm({ onMessage }: TodoFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Server Actionをラップして結果を処理
+  const handleFormAction = async (prevState: any, formData: FormData) => {
+    const result = await createTodo(formData);
+
+    // 結果をメッセージとして親コンポーネントに渡す
+    onMessage({
+      type: result.success ? "success" : "error",
+      text: result.message,
+    });
+
+    // 成功時はフォームをリセット
+    if (result.success && formRef.current) {
+      formRef.current.reset();
+    }
+
+    return result;
+  };
+
+  const [, formAction, isPending] = useActionState(handleFormAction, null);
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">

@@ -8,17 +8,33 @@ import DateDisplay from "./DateDisplay";
 
 interface TodoItemProps {
   todo: Todo;
-  onMessage: (message: { type: "success" | "error"; text: string }) => void;
-}
-
-// Server Actionをラップする関数
-async function updateTodoAction(prevState: any, formData: FormData) {
-  const todoId = Number(formData.get("todoId"));
-  return await updateTodo(todoId, formData);
+  onMessage: (
+    message: { type: "success" | "error"; text: string } | null
+  ) => void;
 }
 
 export default function TodoItem({ todo, onMessage }: TodoItemProps) {
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+
+  // Server Actionをラップして結果を処理
+  const updateTodoAction = async (prevState: any, formData: FormData) => {
+    const todoId = Number(formData.get("todoId"));
+    const result = await updateTodo(todoId, formData);
+
+    // 結果をメッセージとして親コンポーネントに渡す
+    onMessage({
+      type: result.success ? "success" : "error",
+      text: result.message,
+    });
+
+    // 成功時は編集モードを終了
+    if (result.success) {
+      setEditingTodo(null);
+    }
+
+    return result;
+  };
+
   const [, updateAction, isUpdating] = useActionState(updateTodoAction, null);
 
   // ToDoの完了状態を切り替え

@@ -13,6 +13,7 @@ pnpm-debug.log*
 out              # next export 時にできる静的出力 (今回は使用しない想定)
 build
 dist
+.turbo           # Turbopack キャッシュ
 
 # 3. ログ・テスト・カバレッジ – 通常、イメージに含める必要はない
 *.log

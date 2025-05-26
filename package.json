@@ -16,14 +16,7 @@
     "docker:dev:down": "docker compose -f compose.yaml -f compose.dev.yaml down",
     "docker:dev:watch": "docker compose -f compose.yaml -f compose.dev.yaml up --build --watch",
     "docker:prod": "docker compose up --build",
-    "docker:prod:down": "docker compose down",
-    "docker:clean": "docker system prune -f && docker volume prune -f",
-    "docker:logs": "docker compose logs -f",
-    "docker:logs:dev": "docker compose -f compose.yaml -f compose.dev.yaml logs -f",
-    "docker:ps": "docker compose ps",
-    "docker:restart": "docker compose restart",
-    "docker:health": "docker compose exec web curl -f http://localhost:3000/api/health",
-    "docker:db:shell": "docker compose exec db psql -U postgres -d nextjs_app"
+    "docker:prod:down": "docker compose down"
   },
   "dependencies": {
     "drizzle-orm": "^0.43.1",

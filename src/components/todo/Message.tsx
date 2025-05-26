@@ -1,21 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
-
 interface MessageProps {
   message: { type: "success" | "error"; text: string } | null;
-  onClear: () => void;
 }
 
-export default function Message({ message, onClear }: MessageProps) {
-  // メッセージを3秒後に自動で消す
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => onClear(), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [message, onClear]);
-
+export default function Message({ message }: MessageProps) {
   if (!message) return null;
 
   return (

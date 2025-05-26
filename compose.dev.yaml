@@ -35,13 +35,9 @@ services:
         reservations:
           memory: 512M
           cpus: "0.5"
-    # ヘルスチェック（開発環境用）
+    # ヘルスチェック（開発環境では無効化）
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s # 開発環境では起動に時間がかかる場合があるため長めに設定
+      disable: true
 
 volumes:
   pnpm-store: # pnpm のキャッシュを永続化するための名前付きボリューム

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useActionState } from "react";
 import { toggleTodo, updateTodo, deleteTodo } from "@/lib/todo-actions";
 import type { Todo } from "@/types/todo";
@@ -19,25 +19,7 @@ async function updateTodoAction(prevState: any, formData: FormData) {
 
 export default function TodoItem({ todo, onMessage }: TodoItemProps) {
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
-  const [updateState, updateAction, isUpdating] = useActionState(
-    updateTodoAction,
-    null
-  );
-
-  // 更新結果の処理
-  useEffect(() => {
-    if (updateState) {
-      onMessage({
-        type: updateState.success ? "success" : "error",
-        text: updateState.message,
-      });
-
-      // 成功時に編集モードを終了
-      if (updateState.success) {
-        setEditingTodo(null);
-      }
-    }
-  }, [updateState, onMessage]);
+  const [, updateAction, isUpdating] = useActionState(updateTodoAction, null);
 
   // ToDoの完了状態を切り替え
   const handleToggleTodo = async () => {

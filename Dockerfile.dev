@@ -34,8 +34,8 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm fetch
 # 開発用なので devDependencies も含めてインストールされる
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
-# 必要なディレクトリを作成
-RUN mkdir -p .next/cache && mkdir -p public
+# 必要なディレクトリを作成（Turbopack用キャッシュ含む）
+RUN mkdir -p .next/cache && mkdir -p public && mkdir -p .next/cache/turbopack
 
 # 設定ファイルをコピー（所有者を指定してコピー）
 COPY --chown=nextjs:nodejs next.config.ts tsconfig.json postcss.config.mjs eslint.config.mjs ./
@@ -52,6 +52,9 @@ COPY --chown=nextjs:nodejs drizzle/ ./drizzle/
 ENV NODE_ENV=development
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+# Turbopack最適化のための環境変数
+ENV TURBOPACK=1
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # アプリケーションがリッスンするポートを指定 (Next.js 開発サーバーのデフォルト)
 EXPOSE 3000
@@ -60,5 +63,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:3000 || exit 1
 
-# コンテナ起動時に実行するコマンド (Next.js 開発サーバーを起動)
+# コンテナ起動時に実行するコマンド (Next.js 開発サーバーをTurbopackで起動)
 CMD ["pnpm", "run", "dev"]

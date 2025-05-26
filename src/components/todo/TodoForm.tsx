@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { createTodo } from "@/lib/todo-actions";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 
 interface TodoFormProps {
   onMessage: (message: { type: "success" | "error"; text: string }) => void;
@@ -13,24 +13,9 @@ async function createTodoAction(prevState: any, formData: FormData) {
   return await createTodo(formData);
 }
 
-export default function TodoForm({ onMessage }: TodoFormProps) {
-  const [state, formAction, isPending] = useActionState(createTodoAction, null);
+export default function TodoForm() {
+  const [, formAction, isPending] = useActionState(createTodoAction, null);
   const formRef = useRef<HTMLFormElement>(null);
-
-  // Server Actionの結果に基づいてメッセージを表示
-  useEffect(() => {
-    if (state) {
-      onMessage({
-        type: state.success ? "success" : "error",
-        text: state.message,
-      });
-
-      // 成功時にフォームをリセット
-      if (state.success && formRef.current) {
-        formRef.current.reset();
-      }
-    }
-  }, [state, onMessage]);
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">

@@ -24,7 +24,7 @@ export default function TodoContainer({ todos }: TodoContainerProps) {
         </h1>
 
         {/* メッセージ表示 */}
-        <Message message={message} onClear={() => setMessage(null)} />
+        <Message message={message} />
 
         {/* 新しいToDo作成フォーム */}
         <TodoForm onMessage={setMessage} />

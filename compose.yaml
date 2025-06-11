@@ -50,6 +50,9 @@ services:
       dockerfile: Dockerfile # 使用する Dockerfile (本番用)
     container_name: next-app-prod # コンテナ名
     restart: unless-stopped # コンテナが予期せず停止した場合、手動で停止しない限り再起動する
+    # Graceful shutdown設定
+    stop_grace_period: 30s
+    stop_signal: SIGTERM
     depends_on: # 依存関係
       db: # db サービスに依存
         condition: service_healthy # db サービスが healthy 状態になってから起動する

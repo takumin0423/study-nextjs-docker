@@ -16,6 +16,7 @@
     "docker:dev:down": "docker compose -f compose.yaml -f compose.dev.yaml down",
     "docker:dev:rebuild": "docker compose -f compose.yaml -f compose.dev.yaml down -v && docker compose -f compose.yaml -f compose.dev.yaml build --no-cache && docker compose -f compose.yaml -f compose.dev.yaml up",
     "docker:dev:migrate": "docker compose -f compose.yaml -f compose.dev.yaml exec web pnpm db:migrate",
+    "docker:migrate": "docker compose -f compose.yaml -f compose.migrate.yaml run --rm migrate",
     "docker:prod": "docker compose up --build",
     "docker:prod:down": "docker compose down",
     "docker:prod:rebuild": "docker compose down -v && docker compose build --no-cache && docker compose up"

@@ -14,7 +14,7 @@ export default function TodoForm({ onMessage }: TodoFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
 
   // Server Actionをラップして結果を処理
-  const handleFormAction = async (prevState: any, formData: FormData) => {
+  const handleFormAction = async (_prevState: unknown, formData: FormData) => {
     const result = await createTodo(formData);
 
     // 結果をメッセージとして親コンポーネントに渡す

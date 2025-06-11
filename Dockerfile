@@ -1,16 +1,23 @@
 # Dockerfile for Production Environment
 
+# マルチプラットフォーム対応のための変数定義
+ARG NODE_VERSION=20
+ARG PNPM_VERSION=10.11.0
+
 # ---------- base AS base ----------
 # Node.js 20-alpine をベースイメージとして使用（slimよりもセキュアで軽量）
-FROM node:20-alpine AS base
+# マルチプラットフォームビルドをサポート
+FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-alpine AS base
 
 # セキュリティ向上のため非rootユーザーを作成
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# 必要なシステムパッケージをインストール（セキュリティアップデート含む）
-RUN apk add --no-cache libc6-compat curl \
-    && apk upgrade --no-cache
+# 必要なシステムパッケージをインストール
+RUN apk add --no-cache libc6-compat curl
+
+# セキュリティアップデートを別レイヤーで実行（キャッシュ効率向上）
+RUN apk upgrade --no-cache --available
 
 # 環境変数 PNPM_HOME を設定 (pnpm のインストール先)
 ENV PNPM_HOME="/pnpm"
@@ -18,8 +25,9 @@ ENV PNPM_HOME="/pnpm"
 ENV NEXT_TELEMETRY_DISABLED=1
 # 環境変数 PATH に PNPM_HOME を追加
 ENV PATH="${PNPM_HOME}:${PATH}"
-# corepack を有効化 (Node.js に同梱されている pnpm を使用可能にする)
+# corepack を有効化し、pnpmバージョンを固定
 RUN corepack enable
+RUN corepack prepare pnpm@${PNPM_VERSION} --activate
 
 # 作業ディレクトリを /app に設定
 WORKDIR /app
@@ -39,6 +47,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --offline --prod --frozen-lockfile
 
+# 不要なファイルを削除してイメージサイズを削減
+RUN rm -rf /pnpm/store
+
 # ---------- builder AS builder ----------
 # アプリケーションのビルドを行うステージ
 FROM base AS builder
@@ -56,8 +67,16 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # プロジェクト全体のファイルをコピー
 COPY . .
 
+# ビルド時の環境変数を設定
+ENV NEXT_TELEMETRY_DISABLED=1
+
 # Next.js アプリケーションをビルド
-RUN pnpm build
+# ビルド出力を最適化
+RUN pnpm build && \
+    # 不要なキャッシュファイルを削除
+    rm -rf .next/cache && \
+    # 開発用依存関係を削除
+    pnpm prune --prod
 
 # ---------- runner AS runner ----------
 # アプリケーションの実行を行うステージ
@@ -72,8 +91,8 @@ ENV HOSTNAME="0.0.0.0"
 WORKDIR /app
 
 # 必要なディレクトリを作成し、適切な権限を設定
-RUN mkdir -p .next/static && \
-    chown -R nextjs:nodejs /app
+RUN mkdir -p .next/static /tmp /var/cache/nextjs && \
+    chown -R nextjs:nodejs /app /tmp /var/cache/nextjs
 
 # 非rootユーザーに切り替え（セキュリティ向上）
 USER nextjs
@@ -91,9 +110,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 # アプリケーションがリッスンするポートを指定
 EXPOSE 3000
 
-# ヘルスチェックを追加
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+# ヘルスチェックを追加（より詳細な設定）
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:3000/api/health || exit 1
+
+# Graceful shutdownのための設定
+STOPSIGNAL SIGTERM
 
 # コンテナ起動時に実行するコマンド (Next.js standalone サーバーを起動)
 CMD ["node", "server.js"]

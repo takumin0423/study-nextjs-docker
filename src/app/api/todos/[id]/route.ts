@@ -24,7 +24,12 @@ export async function PATCH(
     }
 
     // 更新するフィールドを準備
-    const updateData: any = {
+    const updateData: {
+      updatedAt: Date;
+      title?: string;
+      description?: string | null;
+      completed?: boolean;
+    } = {
       updatedAt: new Date(),
     };
 

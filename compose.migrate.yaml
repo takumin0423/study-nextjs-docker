@@ -1,0 +1,31 @@
+# データベースマイグレーション専用のCompose設定ファイル
+# 使用方法: docker compose -f compose.yaml -f compose.migrate.yaml run --rm migrate
+
+services:
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: nextjs-migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}"
+    networks:
+      - app_net
+    volumes:
+      # マイグレーションファイルのみマウント
+      - ./drizzle:/app/drizzle:ro
+      - ./src/lib/schema.ts:/app/src/lib/schema.ts:ro
+      - ./drizzle.config.ts:/app/drizzle.config.ts:ro
+    command: ["pnpm", "db:migrate"]
+    # マイグレーションは一度だけ実行
+    restart: "no"
+    # リソース制限（軽量タスクなので最小限）
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"

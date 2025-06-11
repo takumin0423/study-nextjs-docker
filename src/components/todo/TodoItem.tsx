@@ -17,7 +17,7 @@ export default function TodoItem({ todo, onMessage }: TodoItemProps) {
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
 
   // Server Actionをラップして結果を処理
-  const updateTodoAction = async (prevState: any, formData: FormData) => {
+  const updateTodoAction = async (_prevState: unknown, formData: FormData) => {
     const todoId = Number(formData.get("todoId"));
     const result = await updateTodo(todoId, formData);
 

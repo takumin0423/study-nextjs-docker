@@ -1,6 +1,5 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { todos } from "./schema";
 
 // データベース接続用のPoolインスタンスを作成
 let pool: Pool | null = null;
@@ -58,7 +57,7 @@ export async function ensureTestTable(): Promise<void> {
 export async function testDatabaseConnection(): Promise<{
   success: boolean;
   message: string;
-  data?: any[];
+  data?: unknown[];
   tableName?: string;
 }> {
   try {

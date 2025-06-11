@@ -1,7 +1,12 @@
 # Dockerfile for Development Environment
 
+# マルチプラットフォーム対応のための変数定義
+ARG NODE_VERSION=20
+ARG PNPM_VERSION=10.11.0
+
 # Node.js 20-alpine をベースイメージとして使用（slimよりもセキュアで軽量）
-FROM node:20-alpine AS base
+# マルチプラットフォームビルドをサポート
+FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-alpine AS base
 
 # セキュリティ向上のため非rootユーザーを作成
 RUN addgroup --system --gid 1001 nodejs
@@ -14,8 +19,9 @@ RUN apk add --no-cache libc6-compat curl git
 ENV PNPM_HOME="/pnpm"
 # 環境変数 PATH に PNPM_HOME を追加
 ENV PATH="${PNPM_HOME}:${PATH}"
-# corepack を有効化 (Node.js に同梱されている pnpm を使用可能にする)
+# corepack を有効化し、pnpmバージョンを固定
 RUN corepack enable
+RUN corepack prepare pnpm@${PNPM_VERSION} --activate
 
 # 作業ディレクトリを /app に設定し、適切な権限を設定
 WORKDIR /app

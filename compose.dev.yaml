@@ -6,6 +6,7 @@ services:
     container_name: next-app-dev # 開発用コンテナ名
     ports:
       - "3000:3000" # ホストの3000ポートをコンテナの3000ポートにマッピング
+      - "9229:9229" # Node.js デバッガーポート
     volumes:
       # ホストのカレントディレクトリをコンテナの /app にマウント (ソースコードのホットリロードのため)
       - .:/app
@@ -24,6 +25,8 @@ services:
       NEXT_TELEMETRY_DISABLED: "1" # テレメトリを無効化
       # ローカルDBコンテナへの接続情報 ( .env ファイルから読み込まれる想定 )
       DATABASE_URL: "postgresql://${DB_USER}:${DB_PASS}@db:5432/${DB_NAME}"
+      # Node.jsデバッグオプション
+      NODE_OPTIONS: "--inspect=0.0.0.0:9229"
     # 開発環境ではセキュリティ設定を緩和（読み取り専用ファイルシステムを無効化）
     read_only: false # 開発環境では書き込みが必要
     # リソース制限（開発環境用）

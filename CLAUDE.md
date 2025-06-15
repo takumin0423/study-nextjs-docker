@@ -42,6 +42,25 @@ pnpm docker:migrate # 独立したマイグレーションサービス実行
 pnpm lint           # ESLint実行
 ```
 
+### Dockerコンテナ操作
+```bash
+# アプリケーションコンテナに入る
+docker exec -it next-app-dev sh
+
+# データベースコンテナに入る
+docker exec -it local-pg bash
+
+# PostgreSQLに接続
+docker exec -it local-pg psql -U myuser -d mydb
+
+# コンテナのログを確認
+docker logs next-app-dev
+docker logs local-pg
+
+# リアルタイムでログを確認
+docker logs -f next-app-dev
+```
+
 ## アーキテクチャ概要
 
 ### 主要技術
